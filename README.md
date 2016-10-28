@@ -10,8 +10,10 @@ read a random line from the file and report the value at that line.
 3. Multiple writers may not write at the same time.
 4. Readers cannot block each other, but may block writer.
 
-## Solution Pseudocode
-The solution is pseudocode is outlined below.
+## Solution Pseudo-code
+The solution is pseudo-code is outlined below.  It assumes that the reads and
+writes to the integer variables are atomic.  To properly solve the problem using
+the solution outlined below, the aforementioned operations must be atomic.
 
 ```c
 reader() {
