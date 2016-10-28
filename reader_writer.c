@@ -12,7 +12,6 @@
 #define sempahore_wait sem_wait
 
 #include "helper_functions.c"
-#include "rand.c"
 #include "atomic_integer.c"
 
 typedef pthread_mutex_t mutex;
