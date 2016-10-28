@@ -78,7 +78,10 @@ static int writeItem(int item) {
   fprintf(buffer, "%d\n", item);
   fflush(buffer);
 
-  printf("Writer: [ %2d ] %11d\n", atomic_increment_and_get(&lineCount), item);
+  printf("Writer: [ %2d ] %11d\n", atomic_get(&lineCount), item);
+
+  atomic_increment(&lineCount);
+
   /* write ends here */
 
   mutex_unlock(&writerMutex); /* release write lock */
@@ -115,8 +118,6 @@ static int readItem() {
   fscanf(localBuffer, "%d\n", &val);
 
   fclose(localBuffer);
-
-  lineToRead++;
 
   printf("Reader: [ %2d ] %11d\n", lineToRead, val);
   /* read ends here */
