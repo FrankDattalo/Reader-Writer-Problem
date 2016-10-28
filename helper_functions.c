@@ -1,6 +1,19 @@
 #ifndef HELPER_FUNCTIONS_C
 #define HELPER_FUNCTIONS_C
 
+/* seed for random number generator */
+static unsigned int     randSeed;
+
+/* initialization code for random number generator */
+void randInit() {
+  randSeed = (unsigned int) time(NULL);
+}
+
+/* random number generator function */
+int nextRand() {
+  return rand_r(&randSeed);
+}
+
 /* simple assert function that aborts execution on a false value */
 void assertTrue(int value, char* errorString) {
   if(!value) {
