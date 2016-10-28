@@ -5,10 +5,12 @@ and append the generated value to the end of the output file.  The readers will
 read a random line from the file and report the value at that line.
 
 ## Rules
-1. Any time a writer is waiting to write no reader may enter a critical section.
-2. Multiple readers can read at the same time.
-3. Multiple writers may not write at the same time.
-4. Readers cannot block each other, but may block writer.
+1. There may exist any amount of readers greater than zero.
+2. There may exist and amount of writers greater than zero.
+3. Any time a writer is waiting to write no reader may enter a critical section.
+4. Multiple readers can read at the same time.
+5. Multiple writers may not write at the same time.
+6. Readers cannot block each other, but may block writer.
 
 ## Solution Pseudo-code
 The solution is pseudo-code is outlined below.  It assumes that the reads and
