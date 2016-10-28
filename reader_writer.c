@@ -1,6 +1,8 @@
 #ifndef READER_WRITER_C
 #define READER_WRITER_C
 
+#define FILENAME "output.txt"
+
 #define mutex_init pthread_mutex_init
 #define mutex_lock pthread_mutex_lock
 #define mutex_unlock pthread_mutex_unlock
@@ -10,7 +12,6 @@
 #define sempahore_wait sem_wait
 
 #include "helper_functions.c"
-#include "buffer.h"
 #include "rand.c"
 #include "atomic_integer.c"
 
@@ -89,7 +90,7 @@ static int writeItem(int item) {
   return 0;
 }
 
-static int readItem(buffer_item* item) {
+static int readItem() {
 
   atomic_increment(&readerCount); /* readerCount++ */
 
@@ -118,9 +119,6 @@ static int readItem(buffer_item* item) {
   lineToRead++;
 
   printf("Reader: [ %2d ] %11d\n", lineToRead, val);
-
-  item->randNumber = val;
-  item->lineNumber = lineToRead;
   /* read ends here */
 
   if(atomic_decrement_and_get(&readerCount) == 0) { /* if --readerCount == 0 */
@@ -153,7 +151,6 @@ void* writer(void* params) {
 void* reader(void* params) {
 
   /* local variables */
-  buffer_item bufferItem;
   int sleepTime = nextRand() % 10 + 1;
 
   printf("Creating a reader that sleeps for %d seconds\n", sleepTime);
@@ -165,49 +162,12 @@ void* reader(void* params) {
     if(atomic_get(&lineCount) > 0) { /* if linecount > 0 */
 
       /* read item, and assert that the return was not an error */
-      assertTrue(!readItem(&bufferItem),
+      assertTrue(!readItem(),
         "An error occurred while trying to read a number");
     }
 
     sleep(sleepTime); /* sleep for random amount */
   }
 }
-
-/*
-Algorithm pseudocode:
-
-writer()
-  writer count ++
-
-  if reader count > 0
-    wait reader empty
-
-  acquire write mutex
-
-  write
-
-  release write mutex
-
-  write count --
-
-  if write count == 0
-    signal write empty
-
-
-reader()
-  reader count ++
-
-  if writer count > 0
-    wait writer empty
-
-  read
-
-  reader count --
-
-  if reader count == 0
-    signal reader empty
-
-
-*/
 
 #endif /* READER_WRITER_C */
