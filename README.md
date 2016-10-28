@@ -12,7 +12,7 @@ read a random line from the file and report the value at that line.
 5. Multiple writers may not write at the same time.
 6. Readers cannot block each other, but may block writer.
 
-## Solution Pseudo-code
+## Solution Pseudo-Code
 The solution is pseudo-code is outlined below.  It assumes that the reads and
 writes to the integer variables are atomic.  To properly solve the problem using
 the solution outlined below, the aforementioned operations must be atomic.
@@ -53,4 +53,13 @@ writer() {
     signal( writer_count_zero )
   }
 }
+```
+
+## Compiling and Running the Code
+
+```
+git clone https://github.com/FrankDattalo/Reader-Writer-Problem.git
+cd Reader-Writer-Problem
+gcc main.c -lpthread -lrt -o rw
+./rw <Main Thread Sleep Time> <Writer Thread Count> <Reader Thread Count>
 ```
