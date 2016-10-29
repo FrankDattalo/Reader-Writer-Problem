@@ -12,21 +12,18 @@
 #define sempahore_wait sem_wait
 
 #include "helper_functions.c"
-#include "atomic_integer.c"
 
 typedef pthread_mutex_t mutex;
 typedef sem_t semaphore;
 
 /* locking mechanisms */
-static mutex            writerMutex;
-static semaphore        readerEmptySempahore;
-static semaphore        writerEmptySemaphore;
+static mutex            readerCountMutex;
+static semaphore        noWriters;
 
-/* implementation of atom integer variables */
-static atomic_integer   lineCount;
-static atomic_integer   readerCount;
-static atomic_integer   writerCount;
-static atomic_integer   shouldContinue;
+/* accounting varibles */
+static int shouldContinue;
+static int readerCount;
+static int lineCount;
 
 /* buffer variable */
 static FILE*            buffer;
@@ -39,17 +36,15 @@ void init() {
   buffer = fopen(FILENAME, "w+");
 
   /* mutex lock setup */
-  mutex_init(&writerMutex, NULL);
+  mutex_init(&readerCountMutex, NULL);
 
-  /* atomic integers setup */
-  atomic_init_and_set(&shouldContinue, 1);
-  atomic_init(&lineCount);
-  atomic_init(&readerCount);
-  atomic_init(&writerCount);
+  /* accounting integers setup */
+  shouldContinue = 1;
+  lineCount = 0;
+  readerCount = 0;
 
   /* semaphore setup */
-  semaphore_init(&readerEmptySempahore, 0, 1);
-  semaphore_init(&writerEmptySemaphore, 0, 1);
+  semaphore_init(&noWriters, 0, 1);
 }
 
 /* de initialization code */
@@ -59,52 +54,42 @@ void deInit() {
 
 /* utility method to signal threads to end */
 void signalEnd() {
-  atomic_set(&shouldContinue, 0);
+  shouldContinue = 0;
 }
 
 static int writeItem(int item) {
 
-  atomic_increment(&writerCount); /* writerCount++ */
-
-  if (atomic_get(&readerCount) > 0) { /* if readerCount > 0 */
-    sempahore_wait(&readerEmptySempahore); /* wait until no readers */
-  }
-
-  mutex_lock(&writerMutex); /* get write lock */
+  sempahore_wait(&noWriters); /* get write lock */
 
   /* write begins here*/
   fseek(buffer, 0, SEEK_END);
   fprintf(buffer, "%d\n", item);
   fflush(buffer);
 
-  printf("Writer: [ %2d ] %11d\n", atomic_get(&lineCount), item);
+  printf("Writer: [ %2d ] %11d\n", lineCount, item);
 
-  atomic_increment(&lineCount);
-
+  lineCount++;
   /* write ends here */
 
-  mutex_unlock(&writerMutex); /* release write lock */
-
-  if (atomic_decrement_and_get(&writerCount) == 0) { /* if --writerCount == 0 */
-    semaphore_signal(&writerEmptySemaphore); /* signal readers that there are no writers */
-  }
+  semaphore_signal(&noWriters); /* release write lock */
 
   return 0;
 }
 
 static int readItem() {
 
-  atomic_increment(&readerCount); /* readerCount++ */
-
-  if(atomic_get(&writerCount) > 0) { /* if writerCount > 0 */
-    sempahore_wait(&writerEmptySemaphore); /* wait until there are no writers */
+  mutex_lock(&readerCountMutex);
+  readerCount++;
+  if(readerCount == 1) {
+    sempahore_wait(&noWriters);
   }
+  mutex_unlock(&readerCountMutex);
 
   /* read begins here */
   FILE* localBuffer = fopen(FILENAME, "r+");
   rewind(localBuffer);
 
-  int lineToRead = nextRand() % atomic_get(&lineCount);
+  int lineToRead = nextRand() % lineCount;
   int currentLine = 0;
   int val;
 
@@ -119,11 +104,15 @@ static int readItem() {
   fclose(localBuffer);
 
   printf("Reader: [ %2d ] %11d\n", lineToRead, val);
+
   /* read ends here */
 
-  if(atomic_decrement_and_get(&readerCount) == 0) { /* if --readerCount == 0 */
-    semaphore_signal(&readerEmptySempahore); /* signal writers that there are no readers */
+  mutex_lock(&readerCountMutex);
+  readerCount--;
+  if(readerCount == 0) {
+    semaphore_signal(&noWriters);
   }
+  mutex_unlock(&readerCountMutex);
 
   return 0;
 }
@@ -137,7 +126,7 @@ void* writer(void* params) {
   printf("Creating a writer that sleeps for %d seconds\n", sleepTime);
   sleep(1);
 
-  while(atomic_get(&shouldContinue)) { /* while should continue is true */
+  while(shouldContinue) { /* while should continue is true */
 
     /* write to buffer and assert that return was not an error */
     assertTrue(!writeItem(nextRand()),
@@ -156,10 +145,10 @@ void* reader(void* params) {
   printf("Creating a reader that sleeps for %d seconds\n", sleepTime);
   sleep(1);
 
-  while(atomic_get(&shouldContinue)) { /* while should continue is true */
+  while(shouldContinue) { /* while should continue is true */
 
     /* read from buffer */
-    if(atomic_get(&lineCount) > 0) { /* if linecount > 0 */
+    if(lineCount > 0) { /* if linecount > 0 */
 
       /* read item, and assert that the return was not an error */
       assertTrue(!readItem(),
