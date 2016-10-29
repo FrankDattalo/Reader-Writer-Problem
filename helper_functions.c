@@ -1,17 +1,25 @@
 #ifndef HELPER_FUNCTIONS_C
 #define HELPER_FUNCTIONS_C
 
+#include <pthread.h>
+
+static pthread_mutex_t randLock;
+
 /* seed for random number generator */
 static unsigned int     randSeed;
 
 /* initialization code for random number generator */
 void randInit() {
   randSeed = (unsigned int) time(NULL);
+  pthread_mutex_init(&randLock, NULL);
 }
 
 /* random number generator function */
 int nextRand() {
-  return rand_r(&randSeed);
+  pthread_mutex_lock(&randLock);
+  int val = rand_r(&randSeed);
+  pthread_mutex_unlock(&randLock);
+  return val;
 }
 
 /* simple assert function that aborts execution on a false value */
