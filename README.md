@@ -21,8 +21,8 @@ the solution outlined below, the aforementioned operations must be atomic.
 reader() {
   reader_count++
 
-  if writer_count > 0 {
-    wait( writer_count_zero )
+  if reader_count == 1 {
+    wait( lock )
   }
 
   // read
@@ -30,28 +30,16 @@ reader() {
   reader_count--
 
   if reader_count == 0 {
-    signal( reader_count_zero )
+    signal( lock )
   }
 }
 
 writer() {
-  writer_count++
-
-  if reader_count > 0 {
-    wait( reader_count_zero )
-  }
-
-  acquire( writer_mutex )
+  wait( lock )
 
   // write ...
 
-  release ( writer_mutex )
-
-  writer_count--
-
-  if writer_count == 0 {
-    signal( writer_count_zero )
-  }
+  wait( lock )
 }
 ```
 
