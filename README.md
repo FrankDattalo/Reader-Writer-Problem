@@ -12,37 +12,6 @@ read a random line from the file and report the value at that line.
 5. Multiple writers may not write at the same time.
 6. Readers cannot block each other, but may block writer.
 
-## Solution Pseudo-Code
-The solution is pseudo-code is outlined below.  It assumes that the reads and
-writes to the integer variables are atomic.  To properly solve the problem using
-the solution outlined below, the aforementioned operations must be atomic.
-
-```c
-reader() {
-  reader_count++
-
-  if reader_count == 1 {
-    wait( lock )
-  }
-
-  // read
-
-  reader_count--
-
-  if reader_count == 0 {
-    signal( lock )
-  }
-}
-
-writer() {
-  wait( lock )
-
-  // write ...
-
-  wait( lock )
-}
-```
-
 ## Compiling and Running the Code
 
 ```
